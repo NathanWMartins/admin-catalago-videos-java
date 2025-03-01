@@ -1,5 +1,6 @@
 package com.admin.catalago.e2e.category;
 
+import com.admin.catalago.ApiTest;
 import com.admin.catalago.E2ETest;
 import com.admin.catalago.domain.category.CategoryID;
 import com.admin.catalago.e2e.MockDsl;
@@ -175,6 +176,7 @@ public class CategoryE2ETest implements MockDsl {
         Assertions.assertEquals(0, categoryRepository.count());
 
         final var aRequest = get("/categories/123")
+                .with(ApiTest.ADMIN_JWT)
                 .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON);
 

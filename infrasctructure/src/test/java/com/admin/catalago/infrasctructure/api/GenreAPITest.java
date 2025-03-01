@@ -1,5 +1,6 @@
 package com.admin.catalago.infrasctructure.api;
 
+import com.admin.catalago.ApiTest;
 import com.admin.catalago.ControllerTest;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.admin.catalago.application.genre.create.CreateGenreOutput;
@@ -62,6 +63,7 @@ public class GenreAPITest {
 
     @MockBean
     private ListGenreUseCase listGenreUseCase;
+
     @Test
     public void givenAValidCommand_whenCallsCreateGenre_shouldReturnGenreId() throws Exception {
         // given
@@ -78,7 +80,8 @@ public class GenreAPITest {
 
         // when
         final var aRequest = post("/genres")
-                .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                .with(ApiTest.GENRES_JWT)
+                .contentType(MediaType.APPLICATION_JSON)
                 .content(this.mapper.writeValueAsString(aCommand));
 
         final var response = this.mvc.perform(aRequest)
@@ -88,7 +91,7 @@ public class GenreAPITest {
         response.andExpect(status().isCreated())
                 .andExpect(header().string("Location", "/genres/" + expectedId))
                 .andExpect(header().string("Content-Type", MediaType.APPLICATION_JSON_VALUE))
-                .andExpect(jsonPath("$.id", Matchers.equalTo(expectedId)));
+                .andExpect(jsonPath("$.id", equalTo(expectedId)));
 
         verify(createGenreUseCase).execute(argThat(cmd ->
                 Objects.equals(expectedName, cmd.name())
@@ -96,7 +99,6 @@ public class GenreAPITest {
                         && Objects.equals(expectedIsActive, cmd.isActive())
         ));
     }
-
 
     @Test
     public void givenAnInvalidName_whenCallsCreateGenre_shouldReturnNotification() throws Exception {
@@ -114,6 +116,7 @@ public class GenreAPITest {
 
         // when
         final var aRequest = post("/genres")
+                .with(ApiTest.GENRES_JWT)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(this.mapper.writeValueAsString(aCommand));
 
@@ -155,6 +158,7 @@ public class GenreAPITest {
 
         // when
         final var aRequest = get("/genres/{id}", expectedId)
+                .with(ApiTest.GENRES_JWT)
                 .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON);
 
@@ -185,6 +189,7 @@ public class GenreAPITest {
 
         // when
         final var aRequest = get("/genres/{id}", expectedId.getValue())
+                .with(ApiTest.GENRES_JWT)
                 .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON);
 
@@ -216,6 +221,7 @@ public class GenreAPITest {
 
         // when
         final var aRequest = put("/genres/{id}", expectedId)
+                .with(ApiTest.GENRES_JWT)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(this.mapper.writeValueAsString(aCommand));
 
@@ -253,6 +259,7 @@ public class GenreAPITest {
 
         // when
         final var aRequest = put("/genres/{id}", expectedId)
+                .with(ApiTest.GENRES_JWT)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(this.mapper.writeValueAsString(aCommand));
 
@@ -282,6 +289,7 @@ public class GenreAPITest {
 
         // when
         final var aRequest = delete("/genres/{id}", expectedId)
+                .with(ApiTest.GENRES_JWT)
                 .accept(MediaType.APPLICATION_JSON);
 
         final var result = this.mvc.perform(aRequest);
@@ -313,6 +321,7 @@ public class GenreAPITest {
 
         // when
         final var aRequest = get("/genres")
+                .with(ApiTest.GENRES_JWT)
                 .queryParam("page", String.valueOf(expectedPage))
                 .queryParam("perPage", String.valueOf(expectedPerPage))
                 .queryParam("sort", expectedSort)
@@ -342,6 +351,4 @@ public class GenreAPITest {
                         && Objects.equals(expectedTerms, query.terms())
         ));
     }
-
-
 }

@@ -1,5 +1,6 @@
 package com.admin.catalago.infrasctructure.api;
 
+import com.admin.catalago.ApiTest;
 import com.admin.catalago.ControllerTest;
 import com.admin.catalago.application.category.create.CreateCategoryOutput;
 import com.admin.catalago.application.category.create.CreateCategoryUseCase;
@@ -32,6 +33,8 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import java.util.List;
 import java.util.Objects;
 
+import static io.vavr.API.Left;
+import static io.vavr.API.Right;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -46,7 +49,7 @@ public class CategoryAPITest {
     private MockMvc mvc;
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private ObjectMapper mapper;
 
     @MockBean
     private CreateCategoryUseCase createCategoryUseCase;
@@ -73,24 +76,28 @@ public class CategoryAPITest {
         final var aInput =
                 new CreateCategoryRequest(expectedName, expectedDescription, expectedIsActive);
 
-        Mockito.when(createCategoryUseCase.execute(Mockito.any()))
-                .thenReturn(API.Right(CreateCategoryOutput.from("123")));
+        when(createCategoryUseCase.execute(any()))
+                .thenReturn(Right(CreateCategoryOutput.from("123")));
 
-        final var request = MockMvcRequestBuilders.post("/categories")
+        // when
+        final var request = post("/categories")
+                .with(ApiTest.CATEGORIES_JWT)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(this.objectMapper.writeValueAsString(aInput));
+                .content(this.mapper.writeValueAsString(aInput));
 
-        this.mvc.perform(request)
-                .andDo(print())
-                .andExpectAll(
-                        status().isCreated(),
-                        header().string("Location", "/categories/123")
-                );
+        final var response = this.mvc.perform(request)
+                .andDo(print());
+
+        // then
+        response.andExpect(status().isCreated())
+                .andExpect(header().string("Location", "/categories/123"))
+                .andExpect(header().string("Content-Type", MediaType.APPLICATION_JSON_VALUE))
+                .andExpect(jsonPath("$.id", equalTo("123")));
 
         verify(createCategoryUseCase, times(1)).execute(argThat(cmd ->
                 Objects.equals(expectedName, cmd.name())
-                && Objects.equals(expectedDescription, cmd.description())
-                && Objects.equals(expectedIsActive, cmd.isActive())
+                        && Objects.equals(expectedDescription, cmd.description())
+                        && Objects.equals(expectedIsActive, cmd.isActive())
         ));
     }
 
@@ -106,12 +113,13 @@ public class CategoryAPITest {
                 new CreateCategoryRequest(expectedName, expectedDescription, expectedIsActive);
 
         when(createCategoryUseCase.execute(any()))
-                .thenReturn(API.Left(Notification.create(new Error(expectedMessage))));
+                .thenReturn(Left(Notification.create(new Error(expectedMessage))));
 
         // when
-        final var request = MockMvcRequestBuilders.post("/categories")
+        final var request = post("/categories")
+                .with(ApiTest.CATEGORIES_JWT)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(this.objectMapper.writeValueAsString(aInput));
+                .content(this.mapper.writeValueAsString(aInput));
 
         final var response = this.mvc.perform(request)
                 .andDo(print());
@@ -145,9 +153,10 @@ public class CategoryAPITest {
                 .thenThrow(DomainException.with(new Error(expectedMessage)));
 
         // when
-        final var request = MockMvcRequestBuilders.post("/categories")
+        final var request = post("/categories")
+                .with(ApiTest.CATEGORIES_JWT)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(this.objectMapper.writeValueAsString(aInput));
+                .content(this.mapper.writeValueAsString(aInput));
 
         final var response = this.mvc.perform(request)
                 .andDo(print());
@@ -183,7 +192,8 @@ public class CategoryAPITest {
                 .thenReturn(CategoryOutput.from(aCategory));
 
         // when
-        final var request = MockMvcRequestBuilders.get("/categories/{id}", expectedId)
+        final var request = get("/categories/{id}", expectedId)
+                .with(ApiTest.CATEGORIES_JWT)
                 .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON);
 
@@ -192,6 +202,7 @@ public class CategoryAPITest {
 
         // then
         response.andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", MediaType.APPLICATION_JSON_VALUE))
                 .andExpect(jsonPath("$.id", equalTo(expectedId)))
                 .andExpect(jsonPath("$.name", equalTo(expectedName)))
                 .andExpect(jsonPath("$.description", equalTo(expectedDescription)))
@@ -213,7 +224,8 @@ public class CategoryAPITest {
                 .thenThrow(NotFoundException.with(Category.class, expectedId));
 
         // when
-        final var request = MockMvcRequestBuilders.get("/categories/{id}", expectedId)
+        final var request = get("/categories/{id}", expectedId.getValue())
+                .with(ApiTest.CATEGORIES_JWT)
                 .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON);
 
@@ -234,16 +246,17 @@ public class CategoryAPITest {
         final var expectedIsActive = true;
 
         when(updateCategoryUseCase.execute(any()))
-                .thenReturn(API.Right(UpdateCategoryOutput.from(expectedId)));
+                .thenReturn(Right(UpdateCategoryOutput.from(expectedId)));
 
         final var aCommand =
                 new UpdateCategoryRequest(expectedName, expectedDescription, expectedIsActive);
 
         // when
         final var request = put("/categories/{id}", expectedId)
+                .with(ApiTest.CATEGORIES_JWT)
                 .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(aCommand));
+                .content(mapper.writeValueAsString(aCommand));
 
         final var response = this.mvc.perform(request)
                 .andDo(print());
@@ -272,16 +285,17 @@ public class CategoryAPITest {
         final var expectedMessage = "'name' should not be null";
 
         when(updateCategoryUseCase.execute(any()))
-                .thenReturn(API.Left(Notification.create(new Error(expectedMessage))));
+                .thenReturn(Left(Notification.create(new Error(expectedMessage))));
 
         final var aCommand =
                 new UpdateCategoryRequest(expectedName, expectedDescription, expectedIsActive);
 
         // when
         final var request = put("/categories/{id}", expectedId)
+                .with(ApiTest.CATEGORIES_JWT)
                 .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(aCommand));
+                .content(mapper.writeValueAsString(aCommand));
 
         final var response = this.mvc.perform(request)
                 .andDo(print());
@@ -317,9 +331,10 @@ public class CategoryAPITest {
 
         // when
         final var request = put("/categories/{id}", expectedId)
+                .with(ApiTest.CATEGORIES_JWT)
                 .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(aCommand));
+                .content(mapper.writeValueAsString(aCommand));
 
         final var response = this.mvc.perform(request)
                 .andDo(print());
@@ -346,6 +361,7 @@ public class CategoryAPITest {
 
         // when
         final var request = delete("/categories/{id}", expectedId)
+                .with(ApiTest.CATEGORIES_JWT)
                 .accept(MediaType.APPLICATION_JSON)
                 .contentType(MediaType.APPLICATION_JSON);
 
@@ -378,6 +394,7 @@ public class CategoryAPITest {
 
         // when
         final var request = get("/categories")
+                .with(ApiTest.CATEGORIES_JWT)
                 .queryParam("page", String.valueOf(expectedPage))
                 .queryParam("perPage", String.valueOf(expectedPerPage))
                 .queryParam("sort", expectedSort)

@@ -15,8 +15,9 @@ import java.lang.annotation.*;
 @ActiveProfiles("test-integration")
 @ComponentScan(
         basePackages = "com.admin.catalago",
+        useDefaultFilters = false,
         includeFilters = {
-            @ComponentScan.Filter(type= FilterType.REGEX, pattern = ".[MySQLGateway]")
+            @ComponentScan.Filter(type= FilterType.REGEX, pattern = ".*MySQLGateway")
         }
 )
 @DataJpaTest
